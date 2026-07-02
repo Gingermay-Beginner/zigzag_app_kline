@@ -3,6 +3,59 @@ import time
 from datetime import datetime, timedelta
 
 
+def _get_a_share_bs_code(code: str) -> str:
+    code = code.strip()
+    if code.startswith("6"):
+        return f"sh.{code}"
+    return f"sz.{code}"
+
+
+def _fetch_a_share_via_baostock(code: str, fields: str, start_date: datetime, end_date: datetime) -> pd.DataFrame:
+    import baostock as bs
+
+    bs_code = _get_a_share_bs_code(code)
+    lg = bs.login()
+    try:
+        rs = bs.query_history_k_data_plus(
+            bs_code,
+            fields,
+            start_date=start_date.strftime("%Y-%m-%d"),
+            end_date=end_date.strftime("%Y-%m-%d"),
+            frequency="d",
+            adjustflag="2",
+        )
+        if rs.error_code != "0":
+            raise ValueError(f"baostock查询失败: {rs.error_msg}")
+
+        data = []
+        while rs.next():
+            row = rs.get_row_data()
+            if len(row) != len(rs.fields):
+                continue
+            data.append(row)
+
+        if not data:
+            raise ValueError(f"baostock未返回有效数据: {code}")
+        return pd.DataFrame(data, columns=rs.fields)
+    finally:
+        bs.logout()
+
+
+def _fetch_a_share_via_akshare(code: str, start_date: datetime, end_date: datetime) -> pd.DataFrame:
+    import akshare as ak
+
+    df = ak.stock_zh_a_hist(
+        symbol=code.strip(),
+        period="daily",
+        start_date=start_date.strftime("%Y%m%d"),
+        end_date=end_date.strftime("%Y%m%d"),
+        adjust="qfq",
+    )
+    if df is None or df.empty:
+        raise ValueError(f"akshare未找到股票 {code} 的数据，请检查代码是否正确")
+    return df
+
+
 def get_stock_data(code: str, market: str) -> pd.DataFrame:
     """
     获取股票历史收盘价数据。
@@ -18,33 +71,20 @@ def get_stock_data(code: str, market: str) -> pd.DataFrame:
     start_date = datetime(2000, 1, 1)  # 拉全量历史
 
     if market == "A股":
-        import baostock as bs
         code = code.strip()
-        # 判断市场前缀
-        if code.startswith("6"):
-            bs_code = f"sh.{code}"
-        else:
-            bs_code = f"sz.{code}"
-        lg = bs.login()
-        rs = bs.query_history_k_data_plus(
-            bs_code,
-            "date,close",
-            start_date=start_date.strftime("%Y-%m-%d"),
-            end_date=end_date.strftime("%Y-%m-%d"),
-            frequency="d",
-            adjustflag="2"  # 前复权
-        )
-        data = []
-        while (rs.error_code == "0") and rs.next():
-            data.append(rs.get_row_data())
-        bs.logout()
-        if not data:
-            raise ValueError(f"未找到股票 {code} 的数据，请检查代码是否正确")
-        df = pd.DataFrame(data, columns=rs.fields)
-        df = df.rename(columns={"date": "date", "close": "close"})
-        df["date"] = pd.to_datetime(df["date"])
-        df["close"] = pd.to_numeric(df["close"], errors="coerce")
-        df = df[["date", "close"]].sort_values("date").reset_index(drop=True)
+        try:
+            df = _fetch_a_share_via_baostock(code, "date,close", start_date, end_date)
+            df = df.rename(columns={"date": "date", "close": "close"})
+            df["date"] = pd.to_datetime(df["date"])
+            df["close"] = pd.to_numeric(df["close"], errors="coerce")
+            df = df[["date", "close"]].sort_values("date").reset_index(drop=True)
+        except Exception:
+            # baostock在云端有时会返回异常格式，失败时回退到akshare
+            raw = _fetch_a_share_via_akshare(code, start_date, end_date)
+            df = raw.rename(columns={"日期": "date", "收盘": "close"})
+            df["date"] = pd.to_datetime(df["date"])
+            df["close"] = pd.to_numeric(df["close"], errors="coerce")
+            df = df[["date", "close"]].sort_values("date").reset_index(drop=True)
 
     elif market == "港股":
         import akshare as ak
@@ -101,28 +141,19 @@ def get_stock_ohlc_data(code: str, market: str) -> pd.DataFrame:
     start_date = datetime(1990, 1, 1)
 
     if market == "A股":
-        import baostock as bs
         code = code.strip()
-        if code.startswith("6"):
-            bs_code = f"sh.{code}"
-        else:
-            bs_code = f"sz.{code}"
-        lg = bs.login()
-        rs = bs.query_history_k_data_plus(
-            bs_code,
-            "date,open,high,low,close",
-            start_date=start_date.strftime("%Y-%m-%d"),
-            end_date=end_date.strftime("%Y-%m-%d"),
-            frequency="d",
-            adjustflag="2",
-        )
-        data = []
-        while (rs.error_code == "0") and rs.next():
-            data.append(rs.get_row_data())
-        bs.logout()
-        if not data:
-            raise ValueError(f"未找到股票 {code} 的数据，请检查代码是否正确")
-        df = pd.DataFrame(data, columns=rs.fields)
+        try:
+            df = _fetch_a_share_via_baostock(code, "date,open,high,low,close", start_date, end_date)
+        except Exception:
+            # baostock异常时自动回退
+            raw = _fetch_a_share_via_akshare(code, start_date, end_date)
+            df = raw.rename(columns={
+                "日期": "date",
+                "开盘": "open",
+                "最高": "high",
+                "最低": "low",
+                "收盘": "close",
+            })
 
     elif market == "港股":
         import akshare as ak
