@@ -29,15 +29,22 @@ st.set_page_config(
 
 # ── 侧边栏 ──────────────────────────────────────────────────────────────
 with st.sidebar:
-    st.header("功能选择")
+    st.header("Step 1 · 选择功能")
     mode = st.radio(
         "功能选择",
         options=["📈 ZigZag波段分析", "⏱️ 择时胜率分析", "🕯️ 连续K线统计"],
         index=0,
         label_visibility="collapsed",
     )
+    mode_name_map = {
+        "📈 ZigZag波段分析": "ZigZag波段分析",
+        "⏱️ 择时胜率分析": "择时胜率分析",
+        "🕯️ 连续K线统计": "连续K线统计",
+    }
+    st.caption(f"当前功能：{mode_name_map.get(mode, mode)}")
 
     st.divider()
+    st.header("Step 2 · 设置参数")
 
     # 根据模式显示对应参数
     analyze_btn = False
@@ -45,7 +52,7 @@ with st.sidebar:
     streak_btn = False
 
     if mode == "📈 ZigZag波段分析":
-        st.header("⚙️ ZigZag分析参数")
+        st.subheader("⚙️ ZigZag分析参数")
 
         market = st.radio(
             "选择市场",
@@ -81,7 +88,7 @@ with st.sidebar:
 
     else:
         if mode == "⏱️ 择时胜率分析":
-            st.header("⏱️ 择时胜率参数")
+            st.subheader("⏱️ 择时胜率参数")
 
             timing_code = st.text_input(
                 "A股代码（择时）",
@@ -101,7 +108,7 @@ with st.sidebar:
             timing_btn = st.button("📊 开始择时分析", use_container_width=True, type="primary")
 
         else:
-            st.header("🕯️ 连续K线统计参数")
+            st.subheader("🕯️ 连续K线统计参数")
 
             streak_market = st.radio(
                 "选择市场",
