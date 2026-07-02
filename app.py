@@ -123,7 +123,9 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:nth-child(2) {
 div[data-testid="stRadio"] div[role="radiogroup"] label:nth-child(2)::after {
     content: " 仅A股可用";
     color: #ff4b4b;
-    font-weight: 600;
+    font-size: 1em;
+    font-weight: inherit;
+    line-height: inherit;
 }
 </style>
             """,
