@@ -22,16 +22,11 @@ def calc_zigzag(prices: pd.Series, threshold: float = 0.20) -> List[Dict[str, An
             'wave_type': 'up' or 'down'
         }
     """
-    prices = prices.reset_index(drop=True)
+    # 保留原始索引（通常是日期），后续通过 idx 回写转折点日期
+    original_index = prices.index
     n = len(prices)
     if n < 2:
         return []
-
-    # 获取日期索引（如果prices有DatetimeIndex则用，否则用位置）
-    if hasattr(prices.index, 'to_pydatetime'):
-        dates = prices.index.to_pydatetime()
-    else:
-        dates = [None] * n
 
     pivots_raw = []  # 存储 (idx, price, type)
 
@@ -111,9 +106,9 @@ def calc_zigzag(prices: pd.Series, threshold: float = 0.20) -> List[Dict[str, An
             wave_type = 'up' if price > prev_price else 'down'
 
         # 获取日期
-        if hasattr(prices, 'index') and hasattr(prices.index, '__getitem__'):
+        if hasattr(original_index, '__getitem__'):
             try:
-                date_val = prices.index[idx]
+                date_val = original_index[idx]
                 if hasattr(date_val, 'to_pydatetime'):
                     date_val = date_val.to_pydatetime()
             except Exception:
