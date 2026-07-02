@@ -15,9 +15,6 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("🐆 股票ZigZag波段分析")
-st.caption("支持A股 / 港股 / 美股 | 阈值可调")
-
 # ── 侧边栏 ──────────────────────────────────────────────────────────────
 with st.sidebar:
     mode = st.radio(
@@ -130,6 +127,17 @@ with st.sidebar:
             )
 
             streak_btn = st.button("📊 开始统计", use_container_width=True, type="primary")
+
+# ── 主标题：随模式切换 ────────────────────────────────────────────────────
+header_map = {
+    "📈 ZigZag波段分析": ("🐆 股票ZigZag波段分析", "支持A股 / 港股 / 美股 | 阈值可调"),
+    "⏱️ 择时胜率分析": ("⏱️ 连续3阴线择时胜率分析", "仅支持A股 | 扫描信号后统计T+1买入、T+2卖出的胜率"),
+    "🕯️ 连续K线统计": ("🕯️ 连续阳线 / 连续阴线统计", "支持A股 / 港股 / 美股 | 按日K/周K/月K/季K统计"),
+}
+page_title, page_caption = header_map.get(mode, ("🐆 股票分析工具", ""))
+st.title(page_title)
+if page_caption:
+    st.caption(page_caption)
 
 # ── 主区域：根据模式显示对应内容 ─────────────────────────────────────────
 if mode == "📈 ZigZag波段分析":
