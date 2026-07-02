@@ -36,12 +36,6 @@ with st.sidebar:
         index=0,
         label_visibility="collapsed",
     )
-    mode_name_map = {
-        "📈 ZigZag波段分析": "ZigZag波段分析",
-        "⏱️ 择时胜率分析": "择时胜率分析",
-        "🕯️ 连续K线统计": "连续K线统计",
-    }
-    st.caption(f"当前功能：{mode_name_map.get(mode, mode)}")
 
     st.divider()
     st.header("Step 2 · 设置参数")
