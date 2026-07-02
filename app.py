@@ -48,25 +48,32 @@ with st.sidebar:
     market_options = ["A股", "港股", "美股"]
 
     st.header("基础参数")
-    auto_detect_market = st.toggle("自动识别市场", value=True)
     code = st.text_input(
         "股票代码",
         placeholder="如 300750 / 9992 / META",
         help="输入一次后，三个功能共用；A股6位数字，港股1-5位数字，美股英文代码",
     )
-    inferred_market = infer_market_from_code(code) if auto_detect_market else None
-    default_market = inferred_market if inferred_market in market_options else "A股"
-    market = st.radio(
-        "选择市场",
+    inferred_market = infer_market_from_code(code)
+    if "market_selector" not in st.session_state:
+        st.session_state.market_selector = "A股"
+    if "last_market_code" not in st.session_state:
+        st.session_state.last_market_code = ""
+
+    # 仅在代码变化时自动更新默认市场，用户仍可手动切换下拉项
+    if code != st.session_state.last_market_code:
+        if inferred_market in market_options:
+            st.session_state.market_selector = inferred_market
+        elif not code.strip():
+            st.session_state.market_selector = "A股"
+        st.session_state.last_market_code = code
+
+    market = st.selectbox(
+        "股票市场",
         options=market_options,
-        index=market_options.index(default_market),
-        horizontal=True,
-        disabled=bool(auto_detect_market and inferred_market),
+        key="market_selector",
     )
-    if auto_detect_market and inferred_market:
-        st.caption(f"已自动识别：{inferred_market}（关闭“自动识别市场”可手动选择）")
-    elif auto_detect_market and code.strip() and not inferred_market:
-        st.warning("未能自动识别市场，请关闭“自动识别市场”后手动选择")
+    if inferred_market:
+        st.caption(f"自动识别：{inferred_market}（可手动切换）")
 
     st.divider()
     st.header("Step 1 · 选择功能")
