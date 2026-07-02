@@ -84,6 +84,9 @@ with st.sidebar:
     if "timing_blocked_hint" not in st.session_state:
         st.session_state.timing_blocked_hint = False
 
+    if market != "A股" and st.session_state.last_enabled_mode == MODE_TIMING:
+        st.session_state.last_enabled_mode = MODE_ZIGZAG
+
     if market != "A股":
         st.markdown(
             """
@@ -96,23 +99,36 @@ div[data-testid="stRadio"] div[role="radiogroup"] label:nth-child(2) {
             unsafe_allow_html=True,
         )
 
-    mode = st.radio(
+    selected_mode = st.radio(
         "功能选择",
         options=[MODE_ZIGZAG, MODE_TIMING, MODE_STREAK],
         label_visibility="collapsed",
         key="mode_selector",
     )
 
-    if market != "A股" and mode == MODE_TIMING:
+    if market != "A股" and selected_mode == MODE_TIMING:
         st.session_state.timing_blocked_hint = True
-        st.session_state.mode_selector = st.session_state.last_enabled_mode
-        st.rerun()
-
-    if mode != MODE_TIMING:
-        st.session_state.last_enabled_mode = mode
+        mode = st.session_state.last_enabled_mode
+    else:
+        mode = selected_mode
+        if mode != MODE_TIMING:
+            st.session_state.last_enabled_mode = mode
+        if market == "A股":
+            st.session_state.timing_blocked_hint = False
 
     if st.session_state.timing_blocked_hint and market != "A股":
-        st.markdown("<span style='color:#ff4b4b;'>仅A股</span>", unsafe_allow_html=True)
+        st.markdown(
+            """
+<style>
+div[data-testid="stRadio"] div[role="radiogroup"] label:nth-child(2)::after {
+    content: " 仅A股可用";
+    color: #ff4b4b;
+    font-weight: 600;
+}
+</style>
+            """,
+            unsafe_allow_html=True,
+        )
     elif market == "A股":
         st.session_state.timing_blocked_hint = False
 
