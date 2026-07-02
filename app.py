@@ -2,12 +2,24 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+import re
 from datetime import datetime, timedelta
 
 from data import get_stock_data, get_stock_ohlc_data, resample_ohlc
 from zigzag import calc_zigzag_from_df
 from charts import chart_zigzag_overlay, chart_wave_bars
 from streak_analysis import calc_candle_streaks, chart_streak_distribution, top_streaks
+
+
+def is_valid_stock_code(code: str, market: str) -> bool:
+    code = code.strip()
+    if market == "A股":
+        return bool(re.fullmatch(r"\d{6}", code))
+    if market == "港股":
+        return bool(re.fullmatch(r"\d{1,5}", code))
+    if market == "美股":
+        return bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9\.\-]*", code))
+    return False
 
 st.set_page_config(
     page_title="ZigZag波段分析",
@@ -145,6 +157,8 @@ if mode == "📈 ZigZag波段分析":
         st.info("👈 在左侧填写参数后点击「开始分析」")
     elif not code.strip():
         st.warning("请输入股票代码")
+    elif not is_valid_stock_code(code, market):
+        st.warning("代码格式不正确：A股需6位数字，港股为1-5位数字，美股为英文代码")
     else:
         # 数据获取
         df = None
@@ -153,6 +167,8 @@ if mode == "📈 ZigZag波段分析":
                 df = get_stock_data(code.strip(), market)
             except Exception as e:
                 st.error(f"❌ 数据获取失败：{e}")
+                if "Connection aborted" in str(e) or "RemoteDisconnected" in str(e):
+                    st.info("数据源连接被中断，请稍等重试，或切换到美股/港股验证应用是否正常。")
                 st.info("请检查：① 股票代码是否正确 ② 网络是否正常 ③ 数据源是否可用")
 
         if df is not None and not df.empty:
@@ -387,6 +403,8 @@ else:
         st.info("👈 在左侧填写参数后点击「开始统计」")
     elif not streak_code.strip():
         st.warning("请输入股票代码")
+    elif not is_valid_stock_code(streak_code, streak_market):
+        st.warning("代码格式不正确：A股需6位数字，港股为1-5位数字，美股为英文代码")
     else:
         try:
             with st.spinner(f"正在获取 {streak_market} · {streak_code} 的K线数据..."):
@@ -439,6 +457,8 @@ else:
 
         except Exception as e:
             st.error(f"❌ 统计失败：{e}")
+            if "Connection aborted" in str(e) or "RemoteDisconnected" in str(e):
+                st.info("数据源连接被中断，请稍等后重试；A股偶尔会出现接口波动。")
             st.info("请检查：① 股票代码是否正确 ② 网络是否正常 ③ 数据源是否可用")
 
 # ── 免责声明 ──────────────────────────────────────────────────────────
