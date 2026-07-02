@@ -29,6 +29,25 @@ st.set_page_config(
 
 # ── 侧边栏 ──────────────────────────────────────────────────────────────
 with st.sidebar:
+    st.header("基础参数")
+    market = st.radio(
+        "选择市场",
+        options=["A股", "港股", "美股"],
+        index=0,
+        horizontal=True,
+    )
+    placeholder_map = {
+        "A股": "如 300750",
+        "港股": "如 9992",
+        "美股": "如 META",
+    }
+    code = st.text_input(
+        "股票代码",
+        placeholder=placeholder_map[market],
+        help="输入一次后，三个功能共用；A股6位数字，港股1-5位数字，美股英文代码",
+    )
+
+    st.divider()
     st.header("Step 1 · 选择功能")
     mode = st.radio(
         "功能选择",
@@ -47,26 +66,6 @@ with st.sidebar:
 
     if mode == "📈 ZigZag波段分析":
         st.subheader("⚙️ ZigZag分析参数")
-
-        market = st.radio(
-            "选择市场",
-            options=["A股", "港股", "美股"],
-            index=0,
-            horizontal=True,
-        )
-
-        placeholder_map = {
-            "A股": "如 300750",
-            "港股": "如 9992",
-            "美股": "如 META",
-        }
-
-        code = st.text_input(
-            "股票代码",
-            placeholder=placeholder_map[market],
-            help="A股输入6位数字代码；港股输入数字代码（会自动补零）；美股输入英文代码",
-        )
-
         threshold_pct = st.slider(
             "ZigZag 阈值",
             min_value=10,
@@ -77,71 +76,34 @@ with st.sidebar:
             help="转折确认的最小波动幅度，越大则转折点越少",
         )
         threshold = threshold_pct / 100.0
-
         analyze_btn = st.button("🔍 开始分析", use_container_width=True, type="primary")
-
+    elif mode == "⏱️ 择时胜率分析":
+        st.subheader("⏱️ 择时胜率参数")
+        default_end = datetime.today()
+        default_start = default_end - timedelta(days=3 * 365)
+        timing_dates = st.date_input(
+            "分析时间范围",
+            value=(default_start.date(), default_end.date()),
+            help="选择起止日期，默认最近3年",
+        )
+        timing_btn = st.button("📊 开始择时分析", use_container_width=True, type="primary")
     else:
-        if mode == "⏱️ 择时胜率分析":
-            st.subheader("⏱️ 择时胜率参数")
-
-            timing_code = st.text_input(
-                "A股代码（择时）",
-                placeholder="如 sh.600000 或 sz.000001",
-                help="仅支持A股，格式为 sh.600000 或 sz.000001",
-            )
-
-            default_end = datetime.today()
-            default_start = default_end - timedelta(days=3 * 365)
-
-            timing_dates = st.date_input(
-                "分析时间范围",
-                value=(default_start.date(), default_end.date()),
-                help="选择起止日期，默认最近3年",
-            )
-
-            timing_btn = st.button("📊 开始择时分析", use_container_width=True, type="primary")
-
-        else:
-            st.subheader("🕯️ 连续K线统计参数")
-
-            streak_market = st.radio(
-                "选择市场",
-                options=["A股", "港股", "美股"],
-                index=0,
-                horizontal=True,
-                key="streak_market",
-            )
-
-            streak_placeholder_map = {
-                "A股": "如 300750",
-                "港股": "如 9992",
-                "美股": "如 META",
-            }
-
-            streak_code = st.text_input(
-                "股票代码",
-                placeholder=streak_placeholder_map[streak_market],
-                help="A股输入6位数字代码；港股输入数字代码（会自动补零）；美股输入英文代码",
-                key="streak_code",
-            )
-
-            k_period = st.radio(
-                "K线周期",
-                options=["日K", "周K", "月K", "季K"],
-                index=0,
-                horizontal=True,
-            )
-
-            min_streak_len = st.slider(
-                "最小连续根数",
-                min_value=2,
-                max_value=10,
-                value=2,
-                step=1,
-                help="只统计达到这个长度的连续阳线/阴线",
-            )
-
-            streak_btn = st.button("📊 开始统计", use_container_width=True, type="primary")
+        st.subheader("🕯️ 连续K线统计参数")
+        k_period = st.radio(
+            "K线周期",
+            options=["日K", "周K", "月K", "季K"],
+            index=0,
+            horizontal=True,
+        )
+        min_streak_len = st.slider(
+            "最小连续根数",
+            min_value=2,
+            max_value=10,
+            value=2,
+            step=1,
+            help="只统计达到这个长度的连续阳线/阴线",
+        )
+        streak_btn = st.button("📊 开始统计", use_container_width=True, type="primary")
 
 # ── 主标题：随模式切换 ────────────────────────────────────────────────────
 header_map = {
@@ -316,13 +278,17 @@ elif mode == "⏱️ 择时胜率分析":
     st.caption("扫描连续3根阴线信号，分析T+1不同时间段买入、T+2卖出的胜率")
 
     if not timing_btn:
-        st.info("👈 在左侧填写A股代码和时间范围后点击「开始择时分析」")
-    elif not timing_code.strip():
-        st.warning("请输入A股代码（格式如 sh.600000 或 sz.000001）")
+        st.info("👈 在左侧填写基础参数和时间范围后点击「开始择时分析」")
+    elif market != "A股":
+        st.warning("择时胜率分析仅支持A股，请先在左侧基础参数中切换到 A股")
+    elif not code.strip():
+        st.warning("请输入A股代码（6位数字，如 600000）")
+    elif not is_valid_stock_code(code, "A股"):
+        st.warning("A股代码格式不正确，请输入6位数字（如 300750）")
     elif not isinstance(timing_dates, (list, tuple)) or len(timing_dates) != 2:
         st.warning("请选择完整的起止日期范围")
     else:
-        tc = timing_code.strip()
+        tc = code.strip()
         # 自动补全前缀：6开头=上交所sh，其他=深交所sz
         if not (tc.startswith("sh.") or tc.startswith("sz.")):
             if tc.startswith("6"):
@@ -404,14 +370,14 @@ else:
 
     if not streak_btn:
         st.info("👈 在左侧填写参数后点击「开始统计」")
-    elif not streak_code.strip():
+    elif not code.strip():
         st.warning("请输入股票代码")
-    elif not is_valid_stock_code(streak_code, streak_market):
+    elif not is_valid_stock_code(code, market):
         st.warning("代码格式不正确：A股需6位数字，港股为1-5位数字，美股为英文代码")
     else:
         try:
-            with st.spinner(f"正在获取 {streak_market} · {streak_code} 的K线数据..."):
-                raw_df = get_stock_ohlc_data(streak_code.strip(), streak_market)
+            with st.spinner(f"正在获取 {market} · {code} 的K线数据..."):
+                raw_df = get_stock_ohlc_data(code.strip(), market)
                 k_df = resample_ohlc(raw_df, k_period)
 
             if k_df.empty:
@@ -422,7 +388,7 @@ else:
                 bear = result["bearish"]
                 top_df = top_streaks(result, limit=12)
 
-                st.subheader(f"📊 {streak_market} · {streak_code.upper()} · {k_period} 统计结果")
+                st.subheader(f"📊 {market} · {code.upper()} · {k_period} 统计结果")
 
                 col1, col2, col3 = st.columns(3)
                 with col1:
