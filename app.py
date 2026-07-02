@@ -21,6 +21,19 @@ def is_valid_stock_code(code: str, market: str) -> bool:
         return bool(re.fullmatch(r"[A-Za-z][A-Za-z0-9\.\-]*", code))
     return False
 
+
+def infer_market_from_code(code: str):
+    code = code.strip()
+    if not code:
+        return None
+    if re.fullmatch(r"\d{6}", code):
+        return "A股"
+    if re.fullmatch(r"\d{1,5}", code):
+        return "港股"
+    if re.fullmatch(r"[A-Za-z][A-Za-z0-9\.\-]*", code):
+        return "美股"
+    return None
+
 st.set_page_config(
     page_title="ZigZag波段分析",
     page_icon="🐆",
@@ -32,24 +45,28 @@ with st.sidebar:
     MODE_ZIGZAG = "📈 ZigZag波段分析"
     MODE_TIMING = "⏱️ 择时胜率分析"
     MODE_STREAK = "🕯️ 连续K线统计"
+    market_options = ["A股", "港股", "美股"]
 
     st.header("基础参数")
-    market = st.radio(
-        "选择市场",
-        options=["A股", "港股", "美股"],
-        index=0,
-        horizontal=True,
-    )
-    placeholder_map = {
-        "A股": "如 300750",
-        "港股": "如 9992",
-        "美股": "如 META",
-    }
+    auto_detect_market = st.toggle("自动识别市场", value=True)
     code = st.text_input(
         "股票代码",
-        placeholder=placeholder_map[market],
+        placeholder="如 300750 / 9992 / META",
         help="输入一次后，三个功能共用；A股6位数字，港股1-5位数字，美股英文代码",
     )
+    inferred_market = infer_market_from_code(code) if auto_detect_market else None
+    default_market = inferred_market if inferred_market in market_options else "A股"
+    market = st.radio(
+        "选择市场",
+        options=market_options,
+        index=market_options.index(default_market),
+        horizontal=True,
+        disabled=bool(auto_detect_market and inferred_market),
+    )
+    if auto_detect_market and inferred_market:
+        st.caption(f"已自动识别：{inferred_market}（关闭“自动识别市场”可手动选择）")
+    elif auto_detect_market and code.strip() and not inferred_market:
+        st.warning("未能自动识别市场，请关闭“自动识别市场”后手动选择")
 
     st.divider()
     st.header("Step 1 · 选择功能")
