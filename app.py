@@ -29,6 +29,10 @@ st.set_page_config(
 
 # ── 侧边栏 ──────────────────────────────────────────────────────────────
 with st.sidebar:
+    MODE_ZIGZAG = "📈 ZigZag波段分析"
+    MODE_TIMING = "⏱️ 择时胜率分析"
+    MODE_STREAK = "🕯️ 连续K线统计"
+
     st.header("基础参数")
     market = st.radio(
         "选择市场",
@@ -49,12 +53,44 @@ with st.sidebar:
 
     st.divider()
     st.header("Step 1 · 选择功能")
+    if "mode_selector" not in st.session_state:
+        st.session_state.mode_selector = MODE_ZIGZAG
+    if "last_enabled_mode" not in st.session_state:
+        st.session_state.last_enabled_mode = MODE_ZIGZAG
+    if "timing_blocked_hint" not in st.session_state:
+        st.session_state.timing_blocked_hint = False
+
+    if market != "A股":
+        st.markdown(
+            """
+<style>
+div[data-testid="stRadio"] div[role="radiogroup"] label:nth-child(2) {
+    opacity: 0.45;
+}
+</style>
+            """,
+            unsafe_allow_html=True,
+        )
+
     mode = st.radio(
         "功能选择",
-        options=["📈 ZigZag波段分析", "⏱️ 择时胜率分析", "🕯️ 连续K线统计"],
-        index=0,
+        options=[MODE_ZIGZAG, MODE_TIMING, MODE_STREAK],
         label_visibility="collapsed",
+        key="mode_selector",
     )
+
+    if market != "A股" and mode == MODE_TIMING:
+        st.session_state.timing_blocked_hint = True
+        st.session_state.mode_selector = st.session_state.last_enabled_mode
+        st.rerun()
+
+    if mode != MODE_TIMING:
+        st.session_state.last_enabled_mode = mode
+
+    if st.session_state.timing_blocked_hint and market != "A股":
+        st.markdown("<span style='color:#ff4b4b;'>仅A股</span>", unsafe_allow_html=True)
+    elif market == "A股":
+        st.session_state.timing_blocked_hint = False
 
     st.divider()
     st.header("Step 2 · 设置参数")
