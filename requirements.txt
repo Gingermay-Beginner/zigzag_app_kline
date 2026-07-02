@@ -1,0 +1,7 @@
+streamlit
+plotly
+akshare
+pandas
+numpy
+yfinance
+baostock
