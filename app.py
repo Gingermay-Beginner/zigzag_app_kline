@@ -29,10 +29,12 @@ st.set_page_config(
 
 # ── 侧边栏 ──────────────────────────────────────────────────────────────
 with st.sidebar:
+    st.header("功能选择")
     mode = st.radio(
         "功能选择",
         options=["📈 ZigZag波段分析", "⏱️ 择时胜率分析", "🕯️ 连续K线统计"],
         index=0,
+        label_visibility="collapsed",
     )
 
     st.divider()
